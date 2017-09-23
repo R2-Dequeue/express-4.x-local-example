@@ -1,3 +1,4 @@
+var path = require('path');
 var express = require('express');
 var passport = require('passport');
 var Strategy = require('passport-local').Strategy;
@@ -61,21 +62,22 @@ app.use(require('express-session')({ secret: 'keyboard cat', resave: false, save
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Define routes.
-app.get('/',
-  function(req, res) {
-    res.render('home', { user: req.user });
-  });
+app.use(express.static(path.join(__dirname, 'static')));
 
-app.get('/login',
+// Define routes.
+
+app.get('/',
   function(req, res){
-    res.render('login');
+    if (req.user)
+      res.redirect('/editor/');
+    else
+      res.render('login');
   });
   
-app.post('/login', 
-  passport.authenticate('local', { failureRedirect: '/login' }),
+app.post('/', 
+  passport.authenticate('local', { failureRedirect: '/' }),
   function(req, res) {
-    res.redirect('/');
+    res.redirect('/editor/');
   });
   
 app.get('/logout',
@@ -84,10 +86,15 @@ app.get('/logout',
     res.redirect('/');
   });
 
-app.get('/profile',
-  require('connect-ensure-login').ensureLoggedIn(),
+app.get(/\/editor\/.*$/,
+  require('connect-ensure-login').ensureLoggedIn('/'),
   function(req, res){
-    res.render('profile', { user: req.user });
+    //res.render('editor', { user: req.user });
+    //console.log('Path: ' + req.baseUrl + ', ' + req.url + ', ' + req.originalUrl);
+    var url = req.originalUrl;
+    if (url.endsWith('/'))
+      url += 'index.html';
+    res.sendFile(path.join(__dirname, url));
   });
 
 app.listen(3000);
